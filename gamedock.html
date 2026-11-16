@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GameDock — HTML Game Player</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#151d33;--panel2:#1d2944;--text:#edf3ff;--muted:#9eacc8;--accent:#7c9cff;--line:#2a3858}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a2850 0,#0b1020 48%);color:var(--text);font:15px system-ui,Segoe UI,Arial,sans-serif;min-height:100vh}
+header{padding:22px clamp(16px,4vw,44px);display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);background:#0b1020bb;position:sticky;top:0;z-index:3;backdrop-filter:blur(12px)}
+.brand{font-size:24px;font-weight:850;letter-spacing:-.8px}.brand span{color:var(--accent)}.sub{color:var(--muted);font-size:13px}
+main{max-width:1250px;margin:auto;padding:28px clamp(14px,3vw,32px) 50px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0}
+button,.filebtn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:10px 14px;border-radius:11px;font-weight:650;cursor:pointer}
+button:hover,.filebtn:hover{border-color:var(--accent);filter:brightness(1.12)}button.primary,.filebtn.primary{background:var(--accent);color:#081127;border-color:transparent}
+input[type=search]{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 13px;color:var(--text);min-width:220px;flex:1}
+input[type=file]{display:none}
+.layout{display:grid;grid-template-columns:290px minmax(0,1fr);gap:18px;align-items:start}
+.panel{background:#121a2dcc;border:1px solid var(--line);border-radius:17px;padding:16px;box-shadow:0 14px 45px #0002}
+h2{font-size:16px;margin:0 0 12px}.hint{color:var(--muted);font-size:13px;line-height:1.5}
+.game-list{display:grid;gap:8px;margin-top:12px}.game-item{display:flex;align-items:center;gap:9px;padding:10px;border:1px solid transparent;border-radius:11px;background:#ffffff07;cursor:pointer;min-width:0}.game-item.active{border-color:var(--accent);background:#7c9cff18}.game-item .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.game-item small{color:var(--muted)}
+.player-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.player-head h2{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stage{background:#050914;border:1px solid var(--line);border-radius:14px;overflow:hidden;min-height:360px;display:grid;place-items:center;position:relative}
+iframe{width:100%;height:min(70vh,680px);min-height:360px;border:0;background:white}
+.empty{text-align:center;padding:55px 20px;max-width:470px}.empty .big{font-size:42px;margin-bottom:10px}.empty h2{font-size:21px}.empty p{color:var(--muted);line-height:1.6}
+.drop{border:1px dashed #52658d;border-radius:13px;padding:16px;text-align:center;color:var(--muted);font-size:13px;margin-top:14px}.drop.over{border-color:var(--accent);background:#7c9cff15}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:22px}
+@media(max-width:760px){header{position:static}.layout{grid-template-columns:1fr}.stage,iframe{min-height:55vh}.toolbar>*{flex:1}.toolbar input{min-width:100%}}
+</style>
+</head>
+<body>
+<header><div><div class="brand">🎮 Game<span>Dock</span></div><div class="sub">Your little home for browser games</div></div><div class="sub">Runs HTML games on this device</div></header>
+<main>
+  <h1 style="font-size:clamp(25px,4vw,36px);margin:0">Your game library</h1>
+  <p class="sub">Add HTML game files, pick one, and play right here.</p>
+  <div class="toolbar">
+    <label class="filebtn primary" for="files">＋ Add HTML games</label><input id="files" type="file" accept=".html,.htm,text/html" multiple>
+    <input id="search" type="search" placeholder="Search your games…">
+    <button id="clear">Clear library</button>
+  </div>
+  <div class="layout">
+    <aside class="panel">
+      <h2>📚 Library <small id="count" class="sub">(0)</small></h2>
+      <div class="hint">Games you add appear here. Your library stays in this browser tab; add the files again if you close or reload the page.</div>
+      <div id="list" class="game-list"><div class="hint">No games yet. Choose “Add HTML games” to get started.</div></div>
+      <div id="drop" class="drop">Or drag and drop .html files here</div>
+    </aside>
+    <section class="panel">
+      <div class="player-head"><h2 id="playing">Nothing playing</h2><div style="display:flex;gap:7px"><button id="reload" title="Reload game">↻</button><button id="fullscreen" title="Fullscreen">⛶</button></div></div>
+      <div class="stage" id="stage"><div class="empty"><div class="big">🕹️</div><h2>Ready when you are</h2><p>Add an HTML game from your device, then tap its name in the library. The game will open in this player.</p><label class="filebtn primary" for="files">Choose a game</label></div></div>
+      <p class="hint" style="margin:12px 2px 0">Tip: choose the game's main <b>.html</b> file. If it needs separate images, sounds, or scripts, keep its original folder structure; some games work best when all their files are together.</p>
+    </section>
+  </div>
+  <footer>GameDock • Local HTML game player</footer>
+</main>
+<script>
+(() => {
+ const input=document.getElementById('files'), list=document.getElementById('list'), count=document.getElementById('count');
+ const search=document.getElementById('search'), stage=document.getElementById('stage'), playing=document.getElementById('playing');
+ const games=[]; let current=null;
+ function addFiles(files){[...files].filter(f=>/\.html?$/i.test(f.name)).forEach(file=>{if(games.some(g=>g.file===file))return;games.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),file});});render();}
+ function render(){const q=search.value.toLowerCase();const shown=games.filter(g=>g.file.name.toLowerCase().includes(q));count.textContent=`(${games.length})`;list.innerHTML='';
+  if(!shown.length){list.innerHTML=`<div class="hint">${games.length?'No matching games.':'No games yet. Choose “Add HTML games” to get started.'}</div>`;return;}
+  shown.forEach(g=>{const el=document.createElement('div');el.className='game-item'+(current===g?' active':'');el.innerHTML='<span>🎮</span><span class="name"></span><small>Play ›</small>';el.querySelector('.name').textContent=g.file.name;el.onclick=()=>play(g);list.appendChild(el);});
+ }
+ function play(g){current=g;const url=URL.createObjectURL(g.file);stage.innerHTML='';const frame=document.createElement('iframe');frame.title=g.file.name;frame.allow='fullscreen; gamepad; autoplay';frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-downloads');frame.src=url;stage.appendChild(frame);playing.textContent=g.file.name;render();if(window._gameUrl)URL.revokeObjectURL(window._gameUrl);window._gameUrl=url;}
+ input.addEventListener('change',e=>{addFiles(e.target.files);input.value='';});
+ search.addEventListener('input',render);
+ document.getElementById('clear').onclick=()=>{games.length=0;current=null;stage.innerHTML='<div class="empty"><div class="big">🕹️</div><h2>Ready when you are</h2><p>Add an HTML game from your device, then tap its name in the library.</p></div>';playing.textContent='Nothing playing';render();};
+ document.getElementById('reload').onclick=()=>{const f=stage.querySelector('iframe');if(f)f.contentWindow.location.reload();};
+ document.getElementById('fullscreen').onclick=()=>{const f=stage.querySelector('iframe');if(f?.requestFullscreen)f.requestFullscreen();};
+ const drop=document.getElementById('drop');['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
+})();
+</script>
+</body>
+</html>
